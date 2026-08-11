@@ -90,7 +90,7 @@
     return image;
   });
   const state = {
-    mode: 'MENU', level: 1, score: 0, lives: 3, stage: 0, rainbowHits: 0, muted: false, last: 0, lifeTimer: 0, shake: 0, sealFlash: 0, bannerTimer: 0, bannerText: '', multiBall: false, powerupUsed: false, powerupDropped: false, powerup: null, particles: [], impactRings: [], keys: {}, bricks: [], balls: [{ x: W / 2, y: H - 65, r: 9, vx: 230, vy: -310, trail: [] }], paddle: { x: W / 2 - 64, y: H - 42, w: 128, h: 14 }, sound: null
+    mode: 'MENU', level: 1, score: 0, lives: 3, stage: 0, rainbowHits: 0, muted: false, last: 0, lifeTimer: 0, shake: 0, sealFlash: 0, bannerTimer: 0, bannerText: '', multiBall: false, powerupUsed: false, powerupDropped: false, powerup: null, particles: [], impactRings: [], keys: {}, bricks: [], balls: [{ x: W / 2, y: H - 65, r: 9, vx: 230, vy: -310 }], paddle: { x: W / 2 - 64, y: H - 42, w: 128, h: 14 }, sound: null
   };
   let focusBeforeDialog = null;
 
@@ -178,7 +178,7 @@
 
   function resetGame() {
     state.mode = 'PLAYING'; state.score = 0; state.lives = 3; state.stage = 0; state.rainbowHits = 0; state.particles = []; state.impactRings = []; state.lifeTimer = 0; state.shake = 0; state.sealFlash = 0; state.bannerTimer = 0; state.bannerText = ''; state.multiBall = false; state.powerupUsed = false; state.powerupDropped = false; state.powerup = null;
-    state.paddle.x = W / 2 - state.paddle.w / 2; state.balls = [{ x: W / 2, y: H - 65, r: 9, vx: 230, vy: -310, trail: [] }]; resetBricks();
+    state.paddle.x = W / 2 - state.paddle.w / 2; state.balls = [{ x: W / 2, y: H - 65, r: 9, vx: 230, vy: -310 }]; resetBricks();
     closeDialog(ui.start, false); closeDialog(ui.level, false); closeDialog(ui.pause, false); closeDialog(ui.end, false); ui.life.classList.add('hidden'); ui.life.setAttribute('aria-hidden', 'true');
     updateHud(); setStatus(`第${state.level}关开始，击破三枚虹彩砖。`); canvas.focus({ preventScroll: true }); audioBeep(520, 0.12);
   }
@@ -199,14 +199,14 @@
     if (state.powerupUsed || state.multiBall) return;
     state.powerupUsed = true; state.powerup = null; state.multiBall = true;
     const source = state.balls[0] || { x: W / 2, y: H - 65, r: 9, vx: 230, vy: -310 };
-    state.balls = [source, { ...source, vx: source.vx === 0 ? 220 : -source.vx, x: source.x + 6, y: source.y - 3, trail: [] }];
+    state.balls = [source, { ...source, vx: source.vx === 0 ? 220 : -source.vx, x: source.x + 6, y: source.y - 3 }];
     updateHud(); state.bannerTimer = 1.2; state.bannerText = 'MULTI_BALL ×2'; setStatus('火力增益：MULTI_BALL，球体已翻倍。'); audioBeep(930, 0.18); spawnParticles(state.paddle.x + state.paddle.w / 2, state.paddle.y, '#ffbb68', 28);
   }
   function loseLife() {
     state.lives -= 1; state.multiBall = false; state.powerup = null; state.balls = []; updateHud(); state.shake = 0.28; audioBeep(150, 0.18);
     if (state.lives <= 0) { state.mode = 'GAME_OVER'; showEnd(false); return; }
     state.mode = 'LIFE_LOST'; state.lifeTimer = 1.1; ui.life.classList.remove('hidden'); ui.life.setAttribute('aria-hidden', 'false'); document.getElementById('lifeMessage').textContent = `还剩 ${state.lives} 点生命，挡板正在复位。`; setStatus('全部球体落底，生命 -1。');
-    state.balls = [{ x: W / 2, y: H - 65, r: 9, vx: (Math.random() > 0.5 ? 1 : -1) * 220, vy: -315, trail: [] }]; updateHud();
+    state.balls = [{ x: W / 2, y: H - 65, r: 9, vx: (Math.random() > 0.5 ? 1 : -1) * 220, vy: -315 }]; updateHud();
   }
   function showEnd(won) {
     if (won && state.level < 6) setUnlockedLevel(state.level + 1);
@@ -229,9 +229,6 @@
     if (item.y - item.h / 2 > H) state.powerup = null;
   }
   function updateBall(ball, dt) {
-    ball.trail ||= [];
-    ball.trail.unshift({ x: ball.x, y: ball.y });
-    if (ball.trail.length > 9) ball.trail.pop();
     ball.x += ball.vx * dt; ball.y += ball.vy * dt;
     if (ball.x - ball.r < 14) { ball.x = 14 + ball.r; ball.vx = Math.abs(ball.vx); audioBeep(230, 0.025); }
     if (ball.x + ball.r > W - 14) { ball.x = W - 14 - ball.r; ball.vx = -Math.abs(ball.vx); audioBeep(230, 0.025); }
@@ -314,79 +311,28 @@
   }
   function drawPowerup() { if (!state.powerup) return; const p = state.powerup; ctx.fillStyle = '#351a18'; ctx.beginPath(); ctx.arc(p.x, p.y, 14, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = '#ff8a4b'; ctx.beginPath(); ctx.arc(p.x, p.y, 10, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = '#fff1b0'; ctx.font = '700 16px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('ϟ', p.x, p.y + 1); }
   function drawBall(ball, index) {
-    const warm = index % 2 === 0;
-    const accent = warm ? '#ffe9a1' : '#86efff';
-    const secondary = warm ? '#ff87c7' : '#b8a4ff';
-    const speed = Math.hypot(ball.vx, ball.vy) || 1;
-    const stretch = Math.min(1.42, 1 + Math.max(0, speed - 220) / 650);
     ctx.save();
-    ball.trail ||= [];
-    for (let i = ball.trail.length - 1; i >= 0; i -= 1) {
-      const point = ball.trail[i];
-      const progress = 1 - i / Math.max(1, ball.trail.length);
-      ctx.globalAlpha = 0.025 + progress * 0.11;
-      ctx.fillStyle = accent;
-      ctx.shadowBlur = 8;
-      ctx.shadowColor = accent;
-      ctx.beginPath();
-      ctx.arc(point.x, point.y, ball.r * (0.38 + progress * 0.42), 0, Math.PI * 2);
-      ctx.fill();
-      ctx.shadowBlur = 0;
-    }
-
-    ctx.globalAlpha = 1;
-    ctx.save();
-    ctx.translate(ball.x, ball.y);
-    ctx.rotate(Math.atan2(ball.vy, ball.vx));
-    ctx.globalAlpha = 0.2;
-    ctx.strokeStyle = accent;
-    ctx.lineWidth = 2.5;
-    ctx.shadowBlur = 12;
-    ctx.shadowColor = accent;
+    ctx.strokeStyle = '#fff8cf99';
+    ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.ellipse(-ball.r * 0.35, 0, ball.r * 1.8 * stretch, ball.r * 0.72, 0, 0, Math.PI * 2);
+    ctx.moveTo(ball.x - ball.vx * 0.035, ball.y - ball.vy * 0.035);
+    ctx.lineTo(ball.x, ball.y);
     ctx.stroke();
-    ctx.restore();
-    ctx.shadowBlur = 14;
-    ctx.shadowColor = '#020513aa';
-    ctx.shadowOffsetY = 4;
+
     ctx.fillStyle = '#07152b';
     ctx.beginPath();
     ctx.arc(ball.x, ball.y, ball.r + 4, 0, Math.PI * 2);
     ctx.fill();
-    ctx.shadowBlur = 0;
-
-    const gradient = ctx.createRadialGradient(ball.x - ball.r * 0.36, ball.y - ball.r * 0.42, 1, ball.x, ball.y, ball.r);
-    gradient.addColorStop(0, '#ffffff');
-    gradient.addColorStop(0.24, accent);
-    gradient.addColorStop(0.72, secondary);
-    gradient.addColorStop(1, warm ? '#ec5e9d' : '#3e9ee9');
-    ctx.fillStyle = gradient;
+    ctx.strokeStyle = '#dffcff';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.shadowBlur = 18;
+    ctx.shadowColor = '#ffe9a1';
+    ctx.fillStyle = '#fff2ac';
     ctx.beginPath();
     ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
     ctx.fill();
-    ctx.strokeStyle = '#eaffff';
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-
-    const innerGlow = ctx.createRadialGradient(ball.x - ball.r * 0.28, ball.y - ball.r * 0.32, 0.5, ball.x, ball.y, ball.r * 0.9);
-    innerGlow.addColorStop(0, '#ffffff72');
-    innerGlow.addColorStop(.45, '#ffffff10');
-    innerGlow.addColorStop(1, '#0a102f00');
-    ctx.fillStyle = innerGlow;
-    ctx.beginPath();
-    ctx.arc(ball.x - ball.r * 0.06, ball.y - ball.r * 0.08, ball.r * 0.82, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = '#ffffff56';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.arc(ball.x - ball.r * 0.12, ball.y - ball.r * 0.14, ball.r * 0.68, Math.PI * 1.04, Math.PI * 1.9);
-    ctx.stroke();
-
-    ctx.fillStyle = '#ffffffd9';
-    ctx.beginPath();
-    ctx.arc(ball.x - ball.r * 0.35, ball.y - ball.r * 0.4, Math.max(1.6, ball.r * 0.2), 0, Math.PI * 2);
-    ctx.fill();
+    ctx.shadowBlur = 0;
     ctx.restore();
   }
   function drawBanner() { if (state.bannerTimer <= 0) return; const alpha = Math.min(1, state.bannerTimer * 3, (1.2 - state.bannerTimer) * 5); ctx.save(); ctx.globalAlpha = alpha; const width = 224; const height = 38; const x = (W - width) / 2; const y = H * .72; ctx.fillStyle = '#111631de'; ctx.beginPath(); ctx.roundRect(x, y, width, height, 12); ctx.fill(); ctx.strokeStyle = '#ffe99c'; ctx.lineWidth = 1.5; ctx.stroke(); ctx.fillStyle = '#fff8d1'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = '700 17px "Microsoft YaHei", sans-serif'; ctx.fillText(state.bannerText, W / 2, y + height / 2); ctx.restore(); }
