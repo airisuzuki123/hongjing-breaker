@@ -90,7 +90,7 @@
     return image;
   });
   const state = {
-    mode: 'MENU', level: 1, score: 0, lives: 3, stage: 0, rainbowHits: 0, muted: false, last: 0, lifeTimer: 0, shake: 0, sealFlash: 0, bannerTimer: 0, bannerText: '', multiBall: false, powerupUsed: false, powerupDropped: false, powerup: null, particles: [], keys: {}, bricks: [], balls: [{ x: W / 2, y: H - 65, r: 9, vx: 230, vy: -310 }], paddle: { x: W / 2 - 64, y: H - 42, w: 128, h: 14 }, sound: null
+    mode: 'MENU', level: 1, score: 0, lives: 3, stage: 0, rainbowHits: 0, muted: false, last: 0, lifeTimer: 0, shake: 0, sealFlash: 0, bannerTimer: 0, bannerText: '', multiBall: false, powerupUsed: false, powerupDropped: false, powerup: null, particles: [], impactRings: [], keys: {}, bricks: [], balls: [{ x: W / 2, y: H - 65, r: 9, vx: 230, vy: -310, trail: [] }], paddle: { x: W / 2 - 64, y: H - 42, w: 128, h: 14 }, sound: null
   };
   let focusBeforeDialog = null;
 
@@ -177,8 +177,8 @@
   }
 
   function resetGame() {
-    state.mode = 'PLAYING'; state.score = 0; state.lives = 3; state.stage = 0; state.rainbowHits = 0; state.particles = []; state.lifeTimer = 0; state.shake = 0; state.sealFlash = 0; state.bannerTimer = 0; state.bannerText = ''; state.multiBall = false; state.powerupUsed = false; state.powerupDropped = false; state.powerup = null;
-    state.paddle.x = W / 2 - state.paddle.w / 2; state.balls = [{ x: W / 2, y: H - 65, r: 9, vx: 230, vy: -310 }]; resetBricks();
+    state.mode = 'PLAYING'; state.score = 0; state.lives = 3; state.stage = 0; state.rainbowHits = 0; state.particles = []; state.impactRings = []; state.lifeTimer = 0; state.shake = 0; state.sealFlash = 0; state.bannerTimer = 0; state.bannerText = ''; state.multiBall = false; state.powerupUsed = false; state.powerupDropped = false; state.powerup = null;
+    state.paddle.x = W / 2 - state.paddle.w / 2; state.balls = [{ x: W / 2, y: H - 65, r: 9, vx: 230, vy: -310, trail: [] }]; resetBricks();
     closeDialog(ui.start, false); closeDialog(ui.level, false); closeDialog(ui.pause, false); closeDialog(ui.end, false); ui.life.classList.add('hidden'); ui.life.setAttribute('aria-hidden', 'true');
     updateHud(); setStatus(`第${state.level}关开始，击破三枚虹彩砖。`); canvas.focus({ preventScroll: true }); audioBeep(520, 0.12);
   }
@@ -193,26 +193,27 @@
     else if (state.mode === 'PAUSED') { setMode('PLAYING'); closeDialog(ui.pause, true); setStatus('继续游戏。'); state.last = performance.now(); }
   }
 
-  function spawnParticles(x, y, color, count = 8) { for (let i = 0; i < count; i += 1) { const angle = Math.random() * Math.PI * 2; const speed = 30 + Math.random() * 150; state.particles.push({ x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed - 40, life: 0.45 + Math.random() * 0.5, color }); } }
+  function spawnParticles(x, y, color, count = 8) { for (let i = 0; i < count; i += 1) { const angle = Math.random() * Math.PI * 2; const speed = 30 + Math.random() * 150; state.particles.push({ x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed - 40, life: 0.45 + Math.random() * 0.5, color, size: 1.5 + Math.random() * 2.2 }); } }
+  function spawnImpactRing(x, y, color) { state.impactRings.push({ x, y, radius: 5, maxRadius: 28, life: 0.28, color }); }
   function activateMultiBall() {
     if (state.powerupUsed || state.multiBall) return;
     state.powerupUsed = true; state.powerup = null; state.multiBall = true;
     const source = state.balls[0] || { x: W / 2, y: H - 65, r: 9, vx: 230, vy: -310 };
-    state.balls = [source, { ...source, vx: source.vx === 0 ? 220 : -source.vx, x: source.x + 6, y: source.y - 3 }];
+    state.balls = [source, { ...source, vx: source.vx === 0 ? 220 : -source.vx, x: source.x + 6, y: source.y - 3, trail: [] }];
     updateHud(); state.bannerTimer = 1.2; state.bannerText = 'MULTI_BALL ×2'; setStatus('火力增益：MULTI_BALL，球体已翻倍。'); audioBeep(930, 0.18); spawnParticles(state.paddle.x + state.paddle.w / 2, state.paddle.y, '#ffbb68', 28);
   }
   function loseLife() {
     state.lives -= 1; state.multiBall = false; state.powerup = null; state.balls = []; updateHud(); state.shake = 0.28; audioBeep(150, 0.18);
     if (state.lives <= 0) { state.mode = 'GAME_OVER'; showEnd(false); return; }
     state.mode = 'LIFE_LOST'; state.lifeTimer = 1.1; ui.life.classList.remove('hidden'); ui.life.setAttribute('aria-hidden', 'false'); document.getElementById('lifeMessage').textContent = `还剩 ${state.lives} 点生命，挡板正在复位。`; setStatus('全部球体落底，生命 -1。');
-    state.balls = [{ x: W / 2, y: H - 65, r: 9, vx: (Math.random() > 0.5 ? 1 : -1) * 220, vy: -315 }]; updateHud();
+    state.balls = [{ x: W / 2, y: H - 65, r: 9, vx: (Math.random() > 0.5 ? 1 : -1) * 220, vy: -315, trail: [] }]; updateHud();
   }
   function showEnd(won) {
     if (won && state.level < 6) setUnlockedLevel(state.level + 1);
     buildLevelCards(); openDialog(ui.end, '#restartBtn'); ui.finalScore.textContent = state.score; ui.endEyebrow.textContent = won ? '挑战完成' : '能量耗尽'; ui.endTitle.textContent = won ? '全部解锁' : '挑战结束'; ui.endMessage.textContent = won ? `第${state.level}关全部砖块清空，封印 4/4。` : '全部球体落底，重新调整反弹角度。'; ui.nextLevelBtn.classList.toggle('hidden', !won || state.level >= 6); if (won) ui.nextLevelBtn.textContent = `进入第${state.level + 1}关`; setStatus(won ? '胜利！下一关已解锁。' : '游戏结束。按 R 重玩本关。'); audioBeep(won ? 880 : 120, 0.2);
   }
   function onBrickHit(brick) {
-    brick.alive = false; state.score += brick.rainbow ? 150 : brick.powerup ? 100 : 50; spawnParticles(brick.x + brick.w / 2, brick.y + brick.h / 2, brick.rainbow ? '#fff3a6' : brick.powerup ? '#ff8b47' : '#75c6ff', brick.rainbow || brick.powerup ? 18 : 8); audioBeep(brick.rainbow ? 760 : brick.powerup ? 610 : 420, 0.055);
+    brick.alive = false; state.score += brick.rainbow ? 150 : brick.powerup ? 100 : 50; const hitColor = brick.rainbow ? '#fff3a6' : brick.powerup ? '#ff8b47' : '#75c6ff'; spawnParticles(brick.x + brick.w / 2, brick.y + brick.h / 2, hitColor, brick.rainbow || brick.powerup ? 18 : 8); spawnImpactRing(brick.x + brick.w / 2, brick.y + brick.h / 2, hitColor); audioBeep(brick.rainbow ? 760 : brick.powerup ? 610 : 420, 0.055);
     if (brick.powerup && !state.powerupDropped && !state.powerupUsed) { state.powerupDropped = true; state.powerup = { x: brick.x + brick.w / 2, y: brick.y + brick.h, w: 20, h: 20, vy: 145 }; setStatus('火力砖击破：接住下落增益物，触发 MULTI_BALL。'); }
     if (brick.rainbow && state.stage < 3) { state.rainbowHits += 1; state.stage = Math.min(3, state.rainbowHits); state.sealFlash = 1; state.bannerTimer = 1.1; state.bannerText = `遮罩消散 ${state.stage}/3`; setStatus(`虹彩砖击破：遮罩消散 ${state.stage}/3。`); spawnParticles(W * 0.72, H * 0.45, '#ffe88e', 24); }
     if (state.bricks.every((item) => !item.alive)) { state.stage = 4; state.sealFlash = 1; state.bannerTimer = 1.35; state.bannerText = '封印完全解除 4/4'; spawnParticles(W * .72, H * .45, '#fff0a0', 42); state.mode = 'WON'; }
@@ -228,12 +229,15 @@
     if (item.y - item.h / 2 > H) state.powerup = null;
   }
   function updateBall(ball, dt) {
+    ball.trail ||= [];
+    ball.trail.unshift({ x: ball.x, y: ball.y });
+    if (ball.trail.length > 9) ball.trail.pop();
     ball.x += ball.vx * dt; ball.y += ball.vy * dt;
     if (ball.x - ball.r < 14) { ball.x = 14 + ball.r; ball.vx = Math.abs(ball.vx); audioBeep(230, 0.025); }
     if (ball.x + ball.r > W - 14) { ball.x = W - 14 - ball.r; ball.vx = -Math.abs(ball.vx); audioBeep(230, 0.025); }
     if (ball.y - ball.r < 16) { ball.y = 16 + ball.r; ball.vy = Math.abs(ball.vy); audioBeep(250, 0.025); }
     const paddle = state.paddle;
-    if (ball.vy > 0 && ball.y + ball.r >= paddle.y && ball.y - ball.r <= paddle.y + paddle.h && ball.x >= paddle.x && ball.x <= paddle.x + paddle.w) { const hit = (ball.x - (paddle.x + paddle.w / 2)) / (paddle.w / 2); ball.vx = hit * 390; ball.vy = -Math.max(260, Math.abs(ball.vy) * 1.015); ball.y = paddle.y - ball.r - 1; audioBeep(560, 0.045); }
+    if (ball.vy > 0 && ball.y + ball.r >= paddle.y && ball.y - ball.r <= paddle.y + paddle.h && ball.x >= paddle.x && ball.x <= paddle.x + paddle.w) { const hit = (ball.x - (paddle.x + paddle.w / 2)) / (paddle.w / 2); ball.vx = hit * 390; ball.vy = -Math.max(260, Math.abs(ball.vy) * 1.015); ball.y = paddle.y - ball.r - 1; spawnImpactRing(ball.x, paddle.y, state.multiBall ? '#ffbb68' : '#8feaff'); audioBeep(560, 0.045); }
     for (const brick of state.bricks) {
       if (!brick.alive) continue;
       if (ball.x + ball.r > brick.x && ball.x - ball.r < brick.x + brick.w && ball.y + ball.r > brick.y && ball.y - ball.r < brick.y + brick.h) { const previousY = ball.y - ball.vy * dt; if (previousY + ball.r <= brick.y || previousY - ball.r >= brick.y + brick.h) ball.vy *= -1; else ball.vx *= -1; onBrickHit(brick); break; }
@@ -248,7 +252,8 @@
     for (let i = state.balls.length - 1; i >= 0; i -= 1) { if (!updateBall(state.balls[i], dt)) { state.balls.splice(i, 1); if (state.balls.length > 0) setStatus(`一枚球落底，剩余 ${state.balls.length} 枚。`); } }
     if (state.balls.length === 0 && state.mode === 'PLAYING') loseLife();
     updateHud();
-    for (let i = state.particles.length - 1; i >= 0; i -= 1) { const p = state.particles[i]; p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 200 * dt; p.life -= dt; if (p.life <= 0) state.particles.splice(i, 1); }
+    for (let i = state.particles.length - 1; i >= 0; i -= 1) { const p = state.particles[i]; p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 200 * dt; p.vx *= 0.985; p.life -= dt; if (p.life <= 0) state.particles.splice(i, 1); }
+    for (let i = state.impactRings.length - 1; i >= 0; i -= 1) { const ring = state.impactRings[i]; ring.life -= dt; ring.radius += (ring.maxRadius - ring.radius) * Math.min(1, dt * 12); if (ring.life <= 0) state.impactRings.splice(i, 1); }
     if (state.shake > 0) state.shake -= dt;
   }
 
@@ -313,23 +318,35 @@
     const accent = warm ? '#ffe9a1' : '#86efff';
     const secondary = warm ? '#ff87c7' : '#b8a4ff';
     const speed = Math.hypot(ball.vx, ball.vy) || 1;
-    const ux = ball.vx / speed;
-    const uy = ball.vy / speed;
+    const stretch = Math.min(1.42, 1 + Math.max(0, speed - 220) / 650);
     ctx.save();
-    // Three soft trail layers keep fast balls readable without changing collision geometry.
-    for (let layer = 3; layer >= 1; layer -= 1) {
-      const distance = layer * 8;
-      ctx.globalAlpha = 0.07 + (3 - layer) * 0.035;
+    ball.trail ||= [];
+    for (let i = ball.trail.length - 1; i >= 0; i -= 1) {
+      const point = ball.trail[i];
+      const progress = 1 - i / Math.max(1, ball.trail.length);
+      ctx.globalAlpha = 0.025 + progress * 0.11;
       ctx.fillStyle = accent;
-      ctx.shadowBlur = 10;
+      ctx.shadowBlur = 8;
       ctx.shadowColor = accent;
       ctx.beginPath();
-      ctx.arc(ball.x - ux * distance, ball.y - uy * distance, ball.r + layer * 1.3, 0, Math.PI * 2);
+      ctx.arc(point.x, point.y, ball.r * (0.38 + progress * 0.42), 0, Math.PI * 2);
       ctx.fill();
       ctx.shadowBlur = 0;
     }
 
     ctx.globalAlpha = 1;
+    ctx.save();
+    ctx.translate(ball.x, ball.y);
+    ctx.rotate(Math.atan2(ball.vy, ball.vx));
+    ctx.globalAlpha = 0.2;
+    ctx.strokeStyle = accent;
+    ctx.lineWidth = 2.5;
+    ctx.shadowBlur = 12;
+    ctx.shadowColor = accent;
+    ctx.beginPath();
+    ctx.ellipse(-ball.r * 0.35, 0, ball.r * 1.8 * stretch, ball.r * 0.72, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
     ctx.shadowBlur = 14;
     ctx.shadowColor = '#020513aa';
     ctx.shadowOffsetY = 4;
@@ -377,7 +394,8 @@
     ctx.save(); if (state.shake > 0) ctx.translate((Math.random() - .5) * state.shake * 18, (Math.random() - .5) * state.shake * 18); drawBackground(); ctx.strokeStyle = '#9bbdff66'; ctx.lineWidth = 2; ctx.strokeRect(14, 16, W - 28, H - 32); for (const brick of state.bricks) if (brick.alive) drawBrick(brick); drawPowerup();
     const paddle = state.paddle; ctx.fillStyle = '#061329'; ctx.beginPath(); ctx.roundRect(paddle.x - 4, paddle.y - 4, paddle.w + 8, paddle.h + 8, 11); ctx.fill(); ctx.strokeStyle = '#e9fbff'; ctx.lineWidth = 2; ctx.stroke(); const pg = ctx.createLinearGradient(paddle.x, paddle.y, paddle.x + paddle.w, paddle.y); pg.addColorStop(0, '#6be6ff'); pg.addColorStop(.5, '#fff0a6'); pg.addColorStop(1, '#ff83bd'); ctx.fillStyle = pg; ctx.beginPath(); ctx.roundRect(paddle.x, paddle.y, paddle.w, paddle.h, 8); ctx.fill(); ctx.fillStyle = '#ffffff88'; ctx.fillRect(paddle.x + 12, paddle.y + 4, paddle.w - 24, 2);
     for (let i = 0; i < state.balls.length; i += 1) drawBall(state.balls[i], i);
-    for (const p of state.particles) { ctx.globalAlpha = Math.max(0, p.life); ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(p.x, p.y, 3, 0, Math.PI * 2); ctx.fill(); } ctx.globalAlpha = 1; drawBanner(); ctx.restore();
+    for (const ring of state.impactRings) { ctx.globalAlpha = Math.max(0, ring.life / 0.28); ctx.strokeStyle = ring.color; ctx.lineWidth = 2; ctx.shadowBlur = 10; ctx.shadowColor = ring.color; ctx.beginPath(); ctx.arc(ring.x, ring.y, ring.radius, 0, Math.PI * 2); ctx.stroke(); ctx.shadowBlur = 0; }
+    for (const p of state.particles) { ctx.globalAlpha = Math.max(0, p.life); ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(p.x, p.y, p.size || 3, 0, Math.PI * 2); ctx.fill(); } ctx.globalAlpha = 1; drawBanner(); ctx.restore();
   }
   function loop(timestamp) { const dt = Math.min(.033, (timestamp - state.last) / 1000 || 0); state.last = timestamp; update(dt); draw(); requestAnimationFrame(loop); }
   function pointerMove(event) { if (state.mode !== 'PLAYING') return; const rect = canvas.getBoundingClientRect(); const x = (event.clientX - rect.left) / rect.width * W; state.paddle.x = Math.max(18, Math.min(W - state.paddle.w - 18, x - state.paddle.w / 2)); }
