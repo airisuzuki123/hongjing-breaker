@@ -90,7 +90,7 @@
     return image;
   });
   const state = {
-    mode: 'MENU', level: 1, score: 0, lives: 3, stage: 0, rainbowHits: 0, muted: false, last: 0, lifeTimer: 0, shake: 0, sealFlash: 0, bannerTimer: 0, bannerText: '', multiBall: false, powerupUsed: false, powerupDropped: false, powerup: null, particles: [], impactRings: [], keys: {}, bricks: [], balls: [{ x: W / 2, y: H - 65, r: 9, vx: 230, vy: -310 }], paddle: { x: W / 2 - 64, y: H - 42, w: 128, h: 14 }, sound: null
+    mode: 'MENU', level: 1, score: 0, lives: 3, stage: 0, rainbowHits: 0, muted: false, last: 0, lifeTimer: 0, shake: 0, sealFlash: 0, bannerTimer: 0, bannerText: '', multiBall: false, powerupUsed: false, powerupDropped: false, powerup: null, particles: [], impactRings: [], keys: {}, bricks: [], balls: [{ x: W / 2, y: H - 65, r: 9, vx: 230, vy: -310 }], paddle: { x: W / 2 - 64, y: H - 42, w: 128, h: 14 }, sound: null, musicTimer: null, musicGain: null, musicStep: 0
   };
   let focusBeforeDialog = null;
 
@@ -154,18 +154,68 @@
     ui.muteBtn.textContent = state.muted ? '×♫' : '♫';
     ui.muteBtn.setAttribute('aria-label', state.muted ? '关闭静音' : '开启静音');
   }
-  function audioBeep(frequency = 440, duration = 0.06) {
-    if (state.muted) return;
+  function ensureAudio() {
     try {
       const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-      if (!AudioContextClass) return;
+      if (!AudioContextClass) return null;
       state.sound ||= new AudioContextClass();
+      if (state.sound.state === 'suspended') state.sound.resume().catch(() => {});
+      return state.sound;
+    } catch (_) { return null; }
+  }
+  function audioBeep(frequency = 440, duration = 0.06) {
+    if (state.muted) return;
+    const audio = ensureAudio();
+    if (!audio) return;
+    try {
       const oscillator = state.sound.createOscillator();
       const gain = state.sound.createGain();
       oscillator.type = 'sine'; oscillator.frequency.value = frequency;
-      gain.gain.setValueAtTime(0.045, state.sound.currentTime); gain.gain.exponentialRampToValueAtTime(0.001, state.sound.currentTime + duration);
-      oscillator.connect(gain).connect(state.sound.destination); oscillator.start(); oscillator.stop(state.sound.currentTime + duration);
+      gain.gain.setValueAtTime(0.045, audio.currentTime); gain.gain.exponentialRampToValueAtTime(0.001, audio.currentTime + duration);
+      oscillator.connect(gain).connect(audio.destination); oscillator.start(); oscillator.stop(audio.currentTime + duration);
     } catch (_) {}
+  }
+  function stopBgm() {
+    if (state.musicTimer) { window.clearInterval(state.musicTimer); state.musicTimer = null; }
+    if (state.musicGain) { try { state.musicGain.disconnect(); } catch (_) {} state.musicGain = null; }
+  }
+  function startBgm() {
+    if (state.muted) return;
+    const audio = ensureAudio();
+    if (!audio) return;
+    stopBgm();
+    const master = audio.createGain();
+    master.gain.value = 0.65;
+    master.connect(audio.destination);
+    state.musicGain = master;
+    state.musicStep = 0;
+    // Original pentatonic arpeggio with a short piano-like attack and decay.
+    const melody = [523.25, 659.25, 783.99, 659.25, 587.33, 783.99, 880, 783.99, 659.25, 587.33, 523.25, 392];
+    const playNote = () => {
+      if (!state.musicGain || state.muted) return;
+      const now = audio.currentTime;
+      const frequency = melody[state.musicStep % melody.length];
+      state.musicStep += 1;
+      const lead = audio.createOscillator();
+      const leadGain = audio.createGain();
+      lead.type = 'triangle'; lead.frequency.setValueAtTime(frequency, now);
+      leadGain.gain.setValueAtTime(0.0001, now); leadGain.gain.exponentialRampToValueAtTime(0.028, now + 0.012); leadGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.32);
+      lead.connect(leadGain).connect(master); lead.start(now); lead.stop(now + 0.34);
+      const overtone = audio.createOscillator();
+      const overtoneGain = audio.createGain();
+      overtone.type = 'sine'; overtone.frequency.setValueAtTime(frequency * 2.01, now);
+      overtoneGain.gain.setValueAtTime(0.0001, now); overtoneGain.gain.exponentialRampToValueAtTime(0.007, now + 0.01); overtoneGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.22);
+      overtone.connect(overtoneGain).connect(master); overtone.start(now); overtone.stop(now + 0.24);
+      if (state.musicStep % 4 === 1) {
+        const bass = audio.createOscillator();
+        const bassGain = audio.createGain();
+        bass.type = 'sine'; bass.frequency.setValueAtTime(frequency / 2, now);
+        bassGain.gain.setValueAtTime(0.0001, now); bassGain.gain.exponentialRampToValueAtTime(0.012, now + 0.04); bassGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.5);
+        bass.connect(bassGain).connect(master); bass.start(now); bass.stop(now + 0.52);
+      }
+    };
+    playNote();
+    state.musicTimer = window.setInterval(playNote, 280);
   }
 
   function resetBricks() {
@@ -180,7 +230,7 @@
     state.mode = 'PLAYING'; state.score = 0; state.lives = 3; state.stage = 0; state.rainbowHits = 0; state.particles = []; state.impactRings = []; state.lifeTimer = 0; state.shake = 0; state.sealFlash = 0; state.bannerTimer = 0; state.bannerText = ''; state.multiBall = false; state.powerupUsed = false; state.powerupDropped = false; state.powerup = null;
     state.paddle.x = W / 2 - state.paddle.w / 2; state.balls = [{ x: W / 2, y: H - 65, r: 9, vx: 230, vy: -310 }]; resetBricks();
     closeDialog(ui.start, false); closeDialog(ui.level, false); closeDialog(ui.pause, false); closeDialog(ui.end, false); ui.life.classList.add('hidden'); ui.life.setAttribute('aria-hidden', 'true');
-    updateHud(); setStatus(`第${state.level}关开始，击破三枚虹彩砖。`); canvas.focus({ preventScroll: true }); audioBeep(520, 0.12);
+    updateHud(); setStatus(`第${state.level}关开始，击破三枚虹彩砖。`); canvas.focus({ preventScroll: true }); audioBeep(520, 0.12); startBgm();
   }
   function startLevel(levelId) { if (levelId < 1 || levelId > 6 || levelId > getUnlockedLevel()) return; state.level = levelId; resetGame(); }
 
@@ -189,8 +239,8 @@
   }
   function setMode(mode) { state.mode = mode; if (mode !== 'PAUSED') closeDialog(ui.pause, false); }
   function togglePause() {
-    if (state.mode === 'PLAYING') { setMode('PAUSED'); openDialog(ui.pause, '#resumeBtn'); setStatus('已暂停。按 Space / P 或点击继续。'); }
-    else if (state.mode === 'PAUSED') { setMode('PLAYING'); closeDialog(ui.pause, true); setStatus('继续游戏。'); state.last = performance.now(); }
+    if (state.mode === 'PLAYING') { setMode('PAUSED'); stopBgm(); openDialog(ui.pause, '#resumeBtn'); setStatus('已暂停。按 Space / P 或点击继续。'); }
+    else if (state.mode === 'PAUSED') { setMode('PLAYING'); closeDialog(ui.pause, true); setStatus('继续游戏。'); state.last = performance.now(); startBgm(); }
   }
 
   function spawnParticles(x, y, color, count = 8) { for (let i = 0; i < count; i += 1) { const angle = Math.random() * Math.PI * 2; const speed = 30 + Math.random() * 150; state.particles.push({ x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed - 40, life: 0.45 + Math.random() * 0.5, color, size: 1.5 + Math.random() * 2.2 }); } }
@@ -204,13 +254,13 @@
   }
   function loseLife() {
     state.lives -= 1; state.multiBall = false; state.powerup = null; state.balls = []; updateHud(); state.shake = 0.28; audioBeep(150, 0.18);
-    if (state.lives <= 0) { state.mode = 'GAME_OVER'; showEnd(false); return; }
+    if (state.lives <= 0) { state.mode = 'GAME_OVER'; stopBgm(); showEnd(false); return; }
     state.mode = 'LIFE_LOST'; state.lifeTimer = 1.1; ui.life.classList.remove('hidden'); ui.life.setAttribute('aria-hidden', 'false'); document.getElementById('lifeMessage').textContent = `还剩 ${state.lives} 点生命，挡板正在复位。`; setStatus('全部球体落底，生命 -1。');
     state.balls = [{ x: W / 2, y: H - 65, r: 9, vx: (Math.random() > 0.5 ? 1 : -1) * 220, vy: -315 }]; updateHud();
   }
   function showEnd(won) {
     if (won && state.level < 6) setUnlockedLevel(state.level + 1);
-    buildLevelCards(); openDialog(ui.end, '#restartBtn'); ui.finalScore.textContent = state.score; ui.endEyebrow.textContent = won ? '挑战完成' : '能量耗尽'; ui.endTitle.textContent = won ? '全部解锁' : '挑战结束'; ui.endMessage.textContent = won ? `第${state.level}关全部砖块清空，封印 4/4。` : '全部球体落底，重新调整反弹角度。'; ui.nextLevelBtn.classList.toggle('hidden', !won || state.level >= 6); if (won) ui.nextLevelBtn.textContent = `进入第${state.level + 1}关`; setStatus(won ? '胜利！下一关已解锁。' : '游戏结束。按 R 重玩本关。'); audioBeep(won ? 880 : 120, 0.2);
+    stopBgm(); buildLevelCards(); openDialog(ui.end, '#restartBtn'); ui.finalScore.textContent = state.score; ui.endEyebrow.textContent = won ? '挑战完成' : '能量耗尽'; ui.endTitle.textContent = won ? '全部解锁' : '挑战结束'; ui.endMessage.textContent = won ? `第${state.level}关全部砖块清空，封印 4/4。` : '全部球体落底，重新调整反弹角度。'; ui.nextLevelBtn.classList.toggle('hidden', !won || state.level >= 6); if (won) ui.nextLevelBtn.textContent = `进入第${state.level + 1}关`; setStatus(won ? '胜利！下一关已解锁。' : '游戏结束。按 R 重玩本关。'); audioBeep(won ? 880 : 120, 0.2);
   }
   function onBrickHit(brick) {
     brick.alive = false; state.score += brick.rainbow ? 150 : brick.powerup ? 100 : 50; const hitColor = brick.rainbow ? '#fff3a6' : brick.powerup ? '#ff8b47' : '#75c6ff'; spawnParticles(brick.x + brick.w / 2, brick.y + brick.h / 2, hitColor, brick.rainbow || brick.powerup ? 18 : 8); spawnImpactRing(brick.x + brick.w / 2, brick.y + brick.h / 2, hitColor); audioBeep(brick.rainbow ? 760 : brick.powerup ? 610 : 420, 0.055);
@@ -381,7 +431,7 @@
   document.getElementById('levelFromEndBtn').addEventListener('click', showLevelSelect);
   ui.levelBtn.addEventListener('click', showLevelSelect);
   ui.pauseBtn.addEventListener('click', togglePause);
-  ui.muteBtn.addEventListener('click', () => { state.muted = !state.muted; updateMuteButton(); setStatus(state.muted ? '音效已静音。' : '音效已开启。'); });
+  ui.muteBtn.addEventListener('click', () => { state.muted = !state.muted; if (state.muted) stopBgm(); else if (state.mode === 'PLAYING') startBgm(); updateMuteButton(); setStatus(state.muted ? '音效已静音。' : '音效已开启。'); });
 
   resizeCanvas(); window.addEventListener('resize', resizeCanvas); requestAnimationFrame(() => document.getElementById('startBtn').focus({ preventScroll: true }));
   const params = new URLSearchParams(location.search); const sceneCompat = Number(params.get('scene')); const requestedLevel = Number(params.get('level')) || (sceneCompat >= 1 && sceneCompat <= 6 ? sceneCompat : 1); state.level = Math.max(1, Math.min(6, requestedLevel));
