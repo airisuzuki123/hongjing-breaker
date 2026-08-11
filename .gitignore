@@ -4,3 +4,4 @@
 node_modules/
 cloudflared*.exe
 .DS_Store
+qa-artifacts/
