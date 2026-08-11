@@ -6,7 +6,7 @@
 - 日期：2026-08-12。
 - 对象：`index.html`、`style.css`、`game.js`、`assets/`。
 - 方法：`node --check game.js`、`git diff --check`、最小 DOM/Canvas VM 烟测、Edge headless 截图和素材目视检查。
-- 本轮只更新本报告，未修改游戏源码。
+- 本轮覆盖 `game.js` 的砖阵几何、球体绘制与选关卡片文案，并复核第 3 至第 6 关素材裁切结果。
 
 ## 最终调整验证
 
