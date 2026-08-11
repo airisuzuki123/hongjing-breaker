@@ -125,7 +125,7 @@
       card.style.backgroundPosition = 'center';
       card.style.backgroundSize = 'cover';
       card.setAttribute('aria-label', locked ? `第${level.id}关 ${level.name}，已锁定` : `第${level.id}关 ${level.name}，难度${level.difficulty}`);
-      card.innerHTML = `<strong>第${level.id}关 · ${level.name}</strong><small>${level.difficulty} · ${level.layoutName}</small><span class="level-lock">${locked ? '🔒 未解锁' : '✓ 可挑战'}</span>`;
+      card.innerHTML = `<strong>第${level.id}关 · ${level.name}</strong><small>${level.difficulty}</small><span class="level-lock">${locked ? '🔒 未解锁' : '✓ 可挑战'}</span>`;
       card.addEventListener('click', () => startLevel(level.id));
       ui.levelGrid.appendChild(card);
     }
@@ -171,7 +171,7 @@
     const level = currentLevel();
     const rainbow = new Set(level.rainbowBricks.map(([col, row]) => `${col},${row}`));
     const powerups = new Set(level.powerupBricks.map(([col, row]) => `${col},${row}`));
-    const gap = 7; const brickW = (590 - gap * (GRID_COLS - 1)) / GRID_COLS; const brickH = 22; const left = 44; const top = 68;
+    const totalWidth = 760; const gap = 7; const brickW = (totalWidth - gap * (GRID_COLS - 1)) / GRID_COLS; const brickH = 22; const left = (W - totalWidth) / 2; const top = 68;
     state.bricks = level.brickLayout.cells.map(([col, row], id) => ({ x: left + col * (brickW + gap), y: top + row * (brickH + gap), w: brickW, h: brickH, col, row, id, alive: true, rainbow: rainbow.has(`${col},${row}`), powerup: powerups.has(`${col},${row}`) }));
   }
 
@@ -270,11 +270,64 @@
     if (brick.rainbow || brick.powerup) { ctx.fillStyle = '#fffbe0'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = '700 14px sans-serif'; ctx.fillText(brick.rainbow ? '✦' : 'ϟ', brick.x + brick.w / 2, brick.y + brick.h / 2 + 1); }
   }
   function drawPowerup() { if (!state.powerup) return; const p = state.powerup; ctx.fillStyle = '#351a18'; ctx.beginPath(); ctx.arc(p.x, p.y, 14, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = '#ff8a4b'; ctx.beginPath(); ctx.arc(p.x, p.y, 10, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = '#fff1b0'; ctx.font = '700 16px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('ϟ', p.x, p.y + 1); }
+  function drawBall(ball, index) {
+    const warm = index % 2 === 0;
+    const accent = warm ? '#ffe9a1' : '#86efff';
+    const secondary = warm ? '#ff87c7' : '#b8a4ff';
+    const speed = Math.hypot(ball.vx, ball.vy) || 1;
+    const ux = ball.vx / speed;
+    const uy = ball.vy / speed;
+    ctx.save();
+    // Three soft trail layers keep fast balls readable without changing collision geometry.
+    for (let layer = 3; layer >= 1; layer -= 1) {
+      const distance = layer * 8;
+      ctx.globalAlpha = 0.07 + (3 - layer) * 0.035;
+      ctx.fillStyle = accent;
+      ctx.beginPath();
+      ctx.arc(ball.x - ux * distance, ball.y - uy * distance, ball.r + layer * 1.3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 0.32;
+    ctx.strokeStyle = accent;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(ball.x - ux * 34, ball.y - uy * 34);
+    ctx.lineTo(ball.x - ux * (ball.r + 2), ball.y - uy * (ball.r + 2));
+    ctx.stroke();
+
+    ctx.globalAlpha = 1;
+    ctx.shadowBlur = 22;
+    ctx.shadowColor = secondary;
+    ctx.fillStyle = '#07152b';
+    ctx.beginPath();
+    ctx.arc(ball.x, ball.y, ball.r + 4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    const gradient = ctx.createRadialGradient(ball.x - ball.r * 0.36, ball.y - ball.r * 0.42, 1, ball.x, ball.y, ball.r);
+    gradient.addColorStop(0, '#ffffff');
+    gradient.addColorStop(0.24, accent);
+    gradient.addColorStop(0.72, secondary);
+    gradient.addColorStop(1, warm ? '#ec5e9d' : '#3e9ee9');
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#eaffff';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    ctx.fillStyle = '#ffffffd9';
+    ctx.beginPath();
+    ctx.arc(ball.x - ball.r * 0.35, ball.y - ball.r * 0.4, Math.max(1.6, ball.r * 0.2), 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
   function drawBanner() { if (state.bannerTimer <= 0) return; const alpha = Math.min(1, state.bannerTimer * 3, (1.2 - state.bannerTimer) * 5); ctx.save(); ctx.globalAlpha = alpha; const width = 224; const height = 38; const x = (W - width) / 2; const y = H * .72; ctx.fillStyle = '#111631de'; ctx.beginPath(); ctx.roundRect(x, y, width, height, 12); ctx.fill(); ctx.strokeStyle = '#ffe99c'; ctx.lineWidth = 1.5; ctx.stroke(); ctx.fillStyle = '#fff8d1'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = '700 17px "Microsoft YaHei", sans-serif'; ctx.fillText(state.bannerText, W / 2, y + height / 2); ctx.restore(); }
   function draw() {
     ctx.save(); if (state.shake > 0) ctx.translate((Math.random() - .5) * state.shake * 18, (Math.random() - .5) * state.shake * 18); drawBackground(); ctx.strokeStyle = '#9bbdff66'; ctx.lineWidth = 2; ctx.strokeRect(14, 16, W - 28, H - 32); for (const brick of state.bricks) if (brick.alive) drawBrick(brick); drawPowerup();
     const paddle = state.paddle; ctx.fillStyle = '#061329'; ctx.beginPath(); ctx.roundRect(paddle.x - 4, paddle.y - 4, paddle.w + 8, paddle.h + 8, 11); ctx.fill(); ctx.strokeStyle = '#e9fbff'; ctx.lineWidth = 2; ctx.stroke(); const pg = ctx.createLinearGradient(paddle.x, paddle.y, paddle.x + paddle.w, paddle.y); pg.addColorStop(0, '#6be6ff'); pg.addColorStop(.5, '#fff0a6'); pg.addColorStop(1, '#ff83bd'); ctx.fillStyle = pg; ctx.beginPath(); ctx.roundRect(paddle.x, paddle.y, paddle.w, paddle.h, 8); ctx.fill(); ctx.fillStyle = '#ffffff88'; ctx.fillRect(paddle.x + 12, paddle.y + 4, paddle.w - 24, 2);
-    for (const ball of state.balls) { ctx.strokeStyle = '#fff8cf99'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(ball.x - ball.vx * .035, ball.y - ball.vy * .035); ctx.lineTo(ball.x, ball.y); ctx.stroke(); ctx.fillStyle = '#061329'; ctx.beginPath(); ctx.arc(ball.x, ball.y, ball.r + 4, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = '#dffcff'; ctx.lineWidth = 2; ctx.stroke(); ctx.shadowBlur = 18; ctx.shadowColor = '#ffe9a1'; ctx.fillStyle = '#fff2ac'; ctx.beginPath(); ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0; }
+    for (let i = 0; i < state.balls.length; i += 1) drawBall(state.balls[i], i);
     for (const p of state.particles) { ctx.globalAlpha = Math.max(0, p.life); ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(p.x, p.y, 3, 0, Math.PI * 2); ctx.fill(); } ctx.globalAlpha = 1; drawBanner(); ctx.restore();
   }
   function loop(timestamp) { const dt = Math.min(.033, (timestamp - state.last) / 1000 || 0); state.last = timestamp; update(dt); draw(); requestAnimationFrame(loop); }

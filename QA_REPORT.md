@@ -1,54 +1,52 @@
-# QA 报告：六关扩展版
+# QA 报告：六关扩展版最终调整
 
 ## 范围与方法
 
 - 依据：`GAME_SPEC.md`。
 - 日期：2026-08-12。
 - 对象：`index.html`、`style.css`、`game.js`、`assets/`。
-- 检查：`node --check game.js`、`git diff --check`、最小 DOM/Canvas VM 烟测、Edge headless 截图目视检查和源码路径核对。
+- 方法：`node --check game.js`、`git diff --check`、最小 DOM/Canvas VM 烟测、Edge headless 截图和素材目视检查。
 - 本轮只更新本报告，未修改游戏源码。
 
-## 验证结果
+## 最终调整验证
 
-| 用例 | 复现步骤 | 预期 | 实际 | 结果 |
+| 项目 | 复现步骤 | 预期 | 实际 | 结果 |
 |---|---|---|---|---|
-| 标题与选关 | 打开页面，点击“进入选关”或按 Enter | 进入 LEVEL_SELECT，显示 6 个关卡按钮；首关可选，其余显示锁定 | `expansion-menu.png` 显示入口；`expansion-level-select-thumbs.png` 显示 6 张卡片，仅第 1 关“可挑战”，第 2-6 关“未解锁” | 通过 |
-| 解锁持久化 | 通关第 N 关，刷新后重新进入选关 | `localStorage` 保留下一关解锁；已解锁关可重玩 | `showEnd(true)` 调用 `setUnlockedLevel(level+1)`，选关读取 `slime-unlocked-level`；按钮 disabled/aria-label 同步表达锁定 | 通过（VM/源码路径） |
-| 六套布局 | 依次启动 `?level=1..6&autoplay` | 6 关砖阵不同，仍使用 960×540 逻辑坐标 | VM 统计砖块数为 48、46、44、24、28、26；对应 `rectangle/symmetry/center-hole/stairs/ring/mixed` 六种布局；level3/6 截图可见不同阵型 | 通过 |
-| 每关特殊砖 | 观察各关初始布局 | 每关正好 3 枚彩虹砖、1-2 枚火力砖，均有符号 | VM 逐关统计：1关 3+1、2关 3+2、3关 3+1、4关 3+1、5关 3+2、6关 3+1；截图中彩虹砖为 ✦、火力砖为闪电符号 | 通过 |
-| stage0-4 | 使用 `?level=1&autoplay&stage=0` 和 `stage=4`，再按正常流程清空 | stage0 显示 4/4 未解除；前三枚彩虹砖依次进入 1/2/3；清空所有砖后 stage4/4、胜利 | `expansion-level1-stage0.png` 显示 0/4 和 4 块马赛克；`expansion-level1-stage4.png` 显示 4/4；`onBrickHit` 仅在所有砖块 `alive=false` 时设 `stage=4` | 通过（stage4 截图为调试参数预览） |
-| MULTI_BALL | 击破火力砖→挡板接住下落闪电→令一球越过底边→再令另一球越过底边 | 接住后变为 2 球；单球掉落不扣生命；两球均掉落才扣 1 生命并恢复单球；每关只生效一次 | VM：激活后 `balls.length=2`、`multiBall=true`；移除一球时生命仍为 3；移除第二球后生命为 2、进入 `LIFE_LOST`、恢复单球 | 通过 |
-| 核心循环/计分 | 让球碰撞普通、火力和彩虹砖 | 分别 +50/+100/+150，单块只计分一次 | `onBrickHit` 设置 `alive=false` 后按砖类型计分；VM 碰撞路径通过 | 通过 |
-| 失球/胜负/重开 | 令球落底，重复至生命归零；按 R 或结束层“重玩本关” | 单球或双球按规则扣生命；0 生命失败；清空全部砖胜利；重开恢复 3 生命/0 分/0 阶段/单球 | VM 检查 `LIFE_LOST`、`GAME_OVER`、`WON`、`resetGame()` 路径；结束层显示最终分数并解锁下一关 | 通过 |
-| 暂停与返回选关 | 游戏中按 Space/P/Esc 或“关卡”按钮 | 暂停冻结球、挡板、增益物和计时；B/关卡按钮进入选关；Esc 从选关返回标题 | `update()` 只在 PLAYING 推进，选关状态为 LEVEL_SELECT；键盘分支覆盖 Space/P/Esc/B | 通过（源码/VM） |
-| level-03 背景 | 打开 `?level=3&autoplay` | 使用 `assets/level-03.jpg` | `expansion-level3.png` 显示 level-03 场景及对应 4 块马赛克 | 通过 |
-| 移动端选关/操作 | 375px 查看选关并检查触控路径 | 选关 2 列；极窄屏 1 列；按钮至少 44px；画布无横向滚动并支持 pointer capture | `expansion-mobile-final.png` 显示 2 列六关卡且未溢出；CSS 设置 44px 控件、360px 以下单列；Canvas 设置 `touch-action:none` 与 pointer capture | 通过（真实设备触控未验证） |
+| 砖阵水平居中 | 启动第 1 关，检查砖阵左右边距 | 砖阵在 960 宽逻辑画布中居中 | `totalWidth=760`，`left=(960-760)/2=100`，左右各余 100；`adjusted-level1.png` 目视确认 | 通过 |
+| 球高光与拖尾 | 启动第 1 关并观察运动球；激活 MULTI_BALL 后绘制两球 | 高光和拖尾提升辨识度，不能改变碰撞或双球数量 | `drawBall()` 只读取球位置/速度并调用 Canvas 绘制；VM 激活后为 2 球，调用 `draw()` 后球对象不变；单球落底后仍留 1 球、生命维持 3 | 通过 |
+| 选关卡片信息 | 进入选关，检查卡片副标题 | 卡片保留关名、难度、锁定状态和缩略图，不显示布局名称/“布局”文字 | `buildLevelCards()` 仅写入关名、难度与锁定状态；`adjusted-select.png` 未见布局名称或“布局”文字 | 通过 |
+| level-03 至 level-06 素材 | 查看 4 张 `assets/level-0[3-6].jpg` 的四角与边缘 | 无角落 Logo、版权条或截图界面元素 | 已逐张目视检查，未见角落 Logo、版权条或截图 UI；页面使用这些本地 JPEG | 通过 |
+
+## 核心扩展回归
+
+- 六关选关：`expansion-level-select-thumbs.png` 显示 6 张卡片，首关可选、其余锁定；`localStorage` 路径在通关时解锁下一关。
+- 六套布局：VM 砖块数依次为 48、46、44、24、28、26，对应基础矩形、左右对称、中心空洞、阶梯回廊、环形双层和混合多区。
+- 特殊砖：每关均为 3 枚彩虹砖与 1-2 枚火力砖，且使用闪光/闪电符号；游戏源码中未发现“目标”文字。
+- 四阶段马赛克：三枚彩虹砖推进 stage1-3；所有砖块清空时设置 stage4 并结算胜利。`expansion-level1-stage0.png` 与 `expansion-level1-stage4.png` 提供调试预览证据。
+- MULTI_BALL：火力增益激活后复制为 2 球；任一球落底只移除该球；全部落底才扣 1 条生命并复位单球。VM 已复核该路径。
+- 移动端：`expansion-mobile-final.png` 显示 2 列选关布局；CSS 在极窄屏切为单列，交互按钮最小 44px，Canvas 使用 `touch-action:none` 与 pointer capture。
 
 ## 静态验证
 
 - `node --check game.js`：通过，退出码 0。
-- `git diff --check`：通过，退出码 0（仅换行符转换提示）。
-- 资源核对：6 个背景文件均存在，包括 `assets/level-03.jpg` 至 `level-06.jpg`。
-- 游戏源码中未发现“目标”文字；特殊砖使用闪光/闪电符号。
+- `git diff --check`：通过，退出码 0，仅有换行符转换提示。
+- VM：绘制后双球状态未被修改；单球掉落不扣生命，全部球掉落才扣生命。
 
 ## 截图证据
 
-- [expansion-menu.png](qa-artifacts/expansion-menu.png)：标题层与 HUD。
-- [expansion-level-select-thumbs.png](qa-artifacts/expansion-level-select-thumbs.png)：桌面六关选关与锁定状态、缩略图。
-- [expansion-level1-stage0.png](qa-artifacts/expansion-level1-stage0.png)：第 1 关 stage0、3 彩虹砖和 1 火力砖。
-- [expansion-level1-stage4.png](qa-artifacts/expansion-level1-stage4.png)：第 1 关 stage4/4 调试预览。
-- [expansion-level3.png](qa-artifacts/expansion-level3.png)：第 3 关新 `level-03` 背景与中心空洞布局。
-- [expansion-level6.png](qa-artifacts/expansion-level6.png)：第 6 关混合多区布局。
-- [expansion-mobile-final.png](qa-artifacts/expansion-mobile-final.png)：375px 选关层，2 列且无溢出。
+- [adjusted-level1.png](qa-artifacts/adjusted-level1.png)：居中的砖阵、球高光与拖尾、特殊砖和 4 块马赛克。
+- [adjusted-select.png](qa-artifacts/adjusted-select.png)：带背景缩略图的六关卡片，无布局文字。
+- [expansion-level-select-thumbs.png](qa-artifacts/expansion-level-select-thumbs.png)：桌面选关与锁定状态。
+- [expansion-mobile-final.png](qa-artifacts/expansion-mobile-final.png)：移动端选关布局。
+- [expansion-level3.png](qa-artifacts/expansion-level3.png)、[expansion-level6.png](qa-artifacts/expansion-level6.png)：第 3、6 关的布局与背景运行证据。
 
-## 问题、严重程度与限制
+## 问题与限制
 
 - P0：未发现。
 - P1：未发现已复现的功能阻塞。
-- P2：未生成独立的 MULTI_BALL 截图；复现步骤为第 1 关击破橙色火力砖、接住下落闪电后观察 HUD/双球。该路径已由 VM 验证，发布前建议补拍实机证据。
-- P2：Edge headless 已生成扩展版截图，但未在真实 iOS/Android 设备执行触控、长时间稳定性、音频策略和多 DPR 验证；移动端截图不能完全替代真实设备试玩。
-- `stage=4` 截图通过 URL 调试参数直接预览，正常玩法仍要求清空全部砖块后才进入 stage4。
+- P2：真实 iOS/Android 设备上的触控、长时间稳定性、音频策略和多 DPR 尚未验证。复现建议：在真实设备连续游玩并触发 MULTI_BALL，检查拖拽、双球、掉球和暂停。
+- P2：当前没有独立的 MULTI_BALL 双球视觉截图；其逻辑已由 VM 验证，建议发布前补拍实机画面。
 
 ## 结论
 
-六关、选关解锁、六种布局、每关 3 彩虹砖与 1-2 火力砖、stage0-4、level-03 背景、MULTI_BALL 双球生命处理、胜负重开和移动端选关均有源码、VM 或 `expansion-*` 截图证据。当前无已复现 P0/P1 阻塞；剩余为 P2 真实设备/截图补证限制。
+最终三项调整未引入已复现回归：砖阵居中，球的视觉效果不改变双球逻辑，选关卡片不再显示布局文字，level-03 至 level-06 素材无角落 Logo、版权条或截图 UI。当前无已复现 P0/P1，剩余为 P2 真实设备与视觉补证限制。
