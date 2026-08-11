@@ -323,16 +323,23 @@
     ctx.beginPath();
     ctx.arc(ball.x, ball.y, ball.r + 4, 0, Math.PI * 2);
     ctx.fill();
-    ctx.strokeStyle = '#dffcff';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-    ctx.shadowBlur = 18;
+    ctx.lineWidth = 0;
+    ctx.shadowBlur = 14;
     ctx.shadowColor = '#ffe9a1';
-    ctx.fillStyle = '#fff2ac';
+    const body = ctx.createRadialGradient(ball.x - ball.r * 0.34, ball.y - ball.r * 0.4, 1, ball.x, ball.y, ball.r);
+    body.addColorStop(0, '#fff9d8');
+    body.addColorStop(0.38, '#fff0b0');
+    body.addColorStop(0.78, '#e6b36e');
+    body.addColorStop(1, '#a66b63');
+    ctx.fillStyle = body;
     ctx.beginPath();
     ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
     ctx.fill();
     ctx.shadowBlur = 0;
+    ctx.fillStyle = '#fff9d866';
+    ctx.beginPath();
+    ctx.arc(ball.x - ball.r * 0.32, ball.y - ball.r * 0.36, Math.max(1.2, ball.r * 0.16), 0, Math.PI * 2);
+    ctx.fill();
     ctx.restore();
   }
   function drawBanner() { if (state.bannerTimer <= 0) return; const alpha = Math.min(1, state.bannerTimer * 3, (1.2 - state.bannerTimer) * 5); ctx.save(); ctx.globalAlpha = alpha; const width = 224; const height = 38; const x = (W - width) / 2; const y = H * .72; ctx.fillStyle = '#111631de'; ctx.beginPath(); ctx.roundRect(x, y, width, height, 12); ctx.fill(); ctx.strokeStyle = '#ffe99c'; ctx.lineWidth = 1.5; ctx.stroke(); ctx.fillStyle = '#fff8d1'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = '700 17px "Microsoft YaHei", sans-serif'; ctx.fillText(state.bannerText, W / 2, y + height / 2); ctx.restore(); }
