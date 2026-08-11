@@ -1,0 +1,6 @@
+*.out
+*.err
+*.log
+node_modules/
+cloudflared*.exe
+.DS_Store
