@@ -29,10 +29,11 @@
         if (type === 'center-hole') include = !(row >= 2 && row <= 3 && col >= 3 && col <= 4);
         if (type === 'stairs') {
           const radius = Math.min(row, GRID_ROWS - 1 - row);
-          include = col >= 3 - radius && col <= 4 + radius;
+          const edgeRadius = radius === 0 ? 1 : radius;
+          include = col >= 3 - edgeRadius && col <= 4 + edgeRadius;
         }
-        if (type === 'ring') include = row === 0 || row === GRID_ROWS - 1 || col === 0 || col === GRID_COLS - 1 || (row === 2 && col >= 2 && col <= 5);
-        if (type === 'mixed') include = (row < 2 && (col < 3 || col > 4)) || (row >= 3 && col >= 2 && col <= 5) || (row === 2 && (col === 3 || col === 4));
+        if (type === 'ring') include = row === 0 || row === GRID_ROWS - 1 || col === 0 || col === GRID_COLS - 1 || ((row === 2 || row === 3) && col >= 2 && col <= 5);
+        if (type === 'mixed') include = (row === 0 && (col < 3 || col > 4)) || (row === 1) || (row >= 3 && col >= 2 && col <= 5) || (row === 2 && col >= 2 && col <= 5);
         if (include) cells.push([col, row]);
       }
     }
@@ -41,29 +42,29 @@
 
   const LEVELS = [
     {
-      id: 1, name: '鎏金舞会', difficulty: '入门', background: 'assets/scene-gala-2022.jpg', layoutName: '基础矩形', brickLayout: { type: 'rectangle', cells: cellsFor('rectangle') },
+      id: 1, name: '星火礼堂', difficulty: '入门', background: 'assets/level-03.jpg', layoutName: '基础矩形', brickLayout: { type: 'rectangle', cells: cellsFor('rectangle') },
       rainbowBricks: [[1, 1], [5, 2], [3, 4]], powerupBricks: [[4, 1]],
-      mosaicModules: [{ x: 32, y: 180, w: 235, h: 168 }, { x: 215, y: 358, w: 240, h: 135 }, { x: 750, y: 345, w: 180, h: 145 }, { x: 530, y: 385, w: 150, h: 95 }], permanentMasks: []
-    },
-    {
-      id: 2, name: '月夜花园', difficulty: '入门+', background: 'assets/scene-moonlit-2025.jpg', layoutName: '左右对称', brickLayout: { type: 'symmetry', cells: cellsFor('symmetry') },
-      rainbowBricks: [[1, 1], [6, 1], [3, 4]], powerupBricks: [[2, 2], [5, 3]],
-      mosaicModules: [{ x: 220, y: 195, w: 205, h: 150 }, { x: 515, y: 190, w: 180, h: 165 }, { x: 570, y: 372, w: 220, h: 113 }, { x: 70, y: 360, w: 150, h: 105 }], permanentMasks: []
-    },
-    {
-      id: 3, name: '星火礼堂', difficulty: '标准', background: 'assets/level-03.jpg', layoutName: '中心空洞', brickLayout: { type: 'center-hole', cells: cellsFor('center-hole') },
-      rainbowBricks: [[2, 1], [5, 3], [3, 5]], powerupBricks: [[6, 2]],
       mosaicModules: [{ x: 580, y: 145, w: 220, h: 150 }, { x: 365, y: 285, w: 220, h: 125 }, { x: 30, y: 360, w: 180, h: 125 }, { x: 690, y: 365, w: 200, h: 120 }], permanentMasks: []
     },
     {
-      id: 4, name: '新春灯影', difficulty: '标准+', background: 'assets/level-04.jpg', layoutName: '阶梯回廊', brickLayout: { type: 'stairs', cells: cellsFor('stairs') },
-      rainbowBricks: [[3, 0], [1, 2], [4, 4]], powerupBricks: [[2, 3]],
+      id: 2, name: '秋庭秘仪', difficulty: '入门+', background: 'assets/level-05.jpg', layoutName: '左右对称', brickLayout: { type: 'symmetry', cells: cellsFor('symmetry') },
+      rainbowBricks: [[1, 1], [6, 1], [3, 4]], powerupBricks: [[2, 2], [5, 3]],
+      mosaicModules: [{ x: 60, y: 170, w: 190, h: 145 }, { x: 365, y: 160, w: 210, h: 155 }, { x: 650, y: 205, w: 235, h: 145 }, { x: 410, y: 350, w: 230, h: 120 }], permanentMasks: []
+    },
+    {
+      id: 3, name: '新春灯影', difficulty: '标准', background: 'assets/level-04.jpg', layoutName: '中心空洞', brickLayout: { type: 'center-hole', cells: cellsFor('center-hole') },
+      rainbowBricks: [[2, 1], [5, 3], [3, 5]], powerupBricks: [[6, 2]],
       mosaicModules: [{ x: 130, y: 145, w: 210, h: 150 }, { x: 390, y: 195, w: 190, h: 135 }, { x: 645, y: 300, w: 230, h: 150 }, { x: 45, y: 350, w: 180, h: 120 }], permanentMasks: []
     },
     {
-      id: 5, name: '秋庭秘仪', difficulty: '进阶', background: 'assets/level-05.jpg', layoutName: '环形双层', brickLayout: { type: 'ring', cells: cellsFor('ring') },
+      id: 4, name: '月夜花园', difficulty: '标准+', background: 'assets/scene-moonlit-2025.jpg', layoutName: '阶梯回廊', brickLayout: { type: 'stairs', cells: cellsFor('stairs') },
+      rainbowBricks: [[3, 0], [1, 2], [4, 4]], powerupBricks: [[2, 3]],
+      mosaicModules: [{ x: 220, y: 195, w: 205, h: 150 }, { x: 515, y: 190, w: 180, h: 165 }, { x: 570, y: 372, w: 220, h: 113 }, { x: 70, y: 360, w: 150, h: 105 }], permanentMasks: []
+    },
+    {
+      id: 5, name: '鎏金舞会', difficulty: '进阶', background: 'assets/scene-gala-2022.jpg', layoutName: '环形双层', brickLayout: { type: 'ring', cells: cellsFor('ring') },
       rainbowBricks: [[0, 0], [7, 5], [3, 2]], powerupBricks: [[4, 2], [2, 5]],
-      mosaicModules: [{ x: 60, y: 170, w: 190, h: 145 }, { x: 365, y: 160, w: 210, h: 155 }, { x: 650, y: 205, w: 235, h: 145 }, { x: 410, y: 350, w: 230, h: 120 }], permanentMasks: []
+      mosaicModules: [{ x: 32, y: 180, w: 235, h: 168 }, { x: 215, y: 358, w: 240, h: 135 }, { x: 750, y: 345, w: 180, h: 145 }, { x: 530, y: 385, w: 150, h: 95 }], permanentMasks: []
     },
     {
       id: 6, name: '夜宴终章', difficulty: '进阶+', background: 'assets/level-06.jpg', layoutName: '混合多区', brickLayout: { type: 'mixed', cells: cellsFor('mixed') },
@@ -266,7 +267,44 @@
     if (brick.rainbow) { gradient.addColorStop(0, '#ff65bd'); gradient.addColorStop(.25, '#ffd66b'); gradient.addColorStop(.5, '#72f2c7'); gradient.addColorStop(.75, '#68c9ff'); gradient.addColorStop(1, '#a27cff'); }
     else if (brick.powerup) { gradient.addColorStop(0, '#ffbc62'); gradient.addColorStop(1, '#c63e3d'); }
     else { gradient.addColorStop(0, '#77b8e9'); gradient.addColorStop(1, '#294f7a'); }
-    ctx.fillStyle = gradient; ctx.beginPath(); ctx.roundRect(brick.x, brick.y, brick.w, brick.h, 6); ctx.fill(); ctx.strokeStyle = brick.rainbow ? '#fff3ae' : brick.powerup ? '#ffd29a' : '#bde4ff66'; ctx.lineWidth = brick.rainbow || brick.powerup ? 1.8 : 1; ctx.stroke();
+    ctx.save();
+    ctx.shadowColor = '#050717aa';
+    ctx.shadowBlur = 5;
+    ctx.shadowOffsetY = 3;
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.roundRect(brick.x, brick.y, brick.w, brick.h, 6);
+    ctx.fill();
+    ctx.restore();
+
+    const sheen = ctx.createLinearGradient(brick.x, brick.y, brick.x, brick.y + brick.h);
+    sheen.addColorStop(0, '#ffffff42');
+    sheen.addColorStop(.32, '#ffffff0c');
+    sheen.addColorStop(1, '#07132942');
+    ctx.save();
+    ctx.beginPath();
+    ctx.roundRect(brick.x + 1, brick.y + 1, brick.w - 2, brick.h - 2, 5);
+    ctx.clip();
+    ctx.fillStyle = sheen;
+    ctx.fillRect(brick.x, brick.y, brick.w, brick.h);
+    ctx.restore();
+
+    ctx.strokeStyle = brick.rainbow ? '#fff3ae' : brick.powerup ? '#ffd29a' : '#bde4ff66';
+    ctx.lineWidth = brick.rainbow || brick.powerup ? 1.8 : 1;
+    ctx.beginPath();
+    ctx.roundRect(brick.x, brick.y, brick.w, brick.h, 6);
+    ctx.stroke();
+    ctx.strokeStyle = brick.rainbow ? '#fffbe8d9' : brick.powerup ? '#fff0c080' : '#e7f8ff80';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(brick.x + 5, brick.y + 2);
+    ctx.lineTo(brick.x + brick.w - 5, brick.y + 2);
+    ctx.stroke();
+    ctx.strokeStyle = '#08112588';
+    ctx.beginPath();
+    ctx.moveTo(brick.x + 5, brick.y + brick.h - 2);
+    ctx.lineTo(brick.x + brick.w - 5, brick.y + brick.h - 2);
+    ctx.stroke();
     if (brick.rainbow || brick.powerup) { ctx.fillStyle = '#fffbe0'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = '700 14px sans-serif'; ctx.fillText(brick.rainbow ? '✦' : 'ϟ', brick.x + brick.w / 2, brick.y + brick.h / 2 + 1); }
   }
   function drawPowerup() { if (!state.powerup) return; const p = state.powerup; ctx.fillStyle = '#351a18'; ctx.beginPath(); ctx.arc(p.x, p.y, 14, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = '#ff8a4b'; ctx.beginPath(); ctx.arc(p.x, p.y, 10, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = '#fff1b0'; ctx.font = '700 16px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('ϟ', p.x, p.y + 1); }
@@ -283,21 +321,18 @@
       const distance = layer * 8;
       ctx.globalAlpha = 0.07 + (3 - layer) * 0.035;
       ctx.fillStyle = accent;
+      ctx.shadowBlur = 10;
+      ctx.shadowColor = accent;
       ctx.beginPath();
       ctx.arc(ball.x - ux * distance, ball.y - uy * distance, ball.r + layer * 1.3, 0, Math.PI * 2);
       ctx.fill();
+      ctx.shadowBlur = 0;
     }
-    ctx.globalAlpha = 0.32;
-    ctx.strokeStyle = accent;
-    ctx.lineWidth = 2.5;
-    ctx.beginPath();
-    ctx.moveTo(ball.x - ux * 34, ball.y - uy * 34);
-    ctx.lineTo(ball.x - ux * (ball.r + 2), ball.y - uy * (ball.r + 2));
-    ctx.stroke();
 
     ctx.globalAlpha = 1;
-    ctx.shadowBlur = 22;
-    ctx.shadowColor = secondary;
+    ctx.shadowBlur = 14;
+    ctx.shadowColor = '#020513aa';
+    ctx.shadowOffsetY = 4;
     ctx.fillStyle = '#07152b';
     ctx.beginPath();
     ctx.arc(ball.x, ball.y, ball.r + 4, 0, Math.PI * 2);
@@ -315,6 +350,20 @@
     ctx.fill();
     ctx.strokeStyle = '#eaffff';
     ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    const innerGlow = ctx.createRadialGradient(ball.x - ball.r * 0.28, ball.y - ball.r * 0.32, 0.5, ball.x, ball.y, ball.r * 0.9);
+    innerGlow.addColorStop(0, '#ffffff72');
+    innerGlow.addColorStop(.45, '#ffffff10');
+    innerGlow.addColorStop(1, '#0a102f00');
+    ctx.fillStyle = innerGlow;
+    ctx.beginPath();
+    ctx.arc(ball.x - ball.r * 0.06, ball.y - ball.r * 0.08, ball.r * 0.82, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#ffffff56';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(ball.x - ball.r * 0.12, ball.y - ball.r * 0.14, ball.r * 0.68, Math.PI * 1.04, Math.PI * 1.9);
     ctx.stroke();
 
     ctx.fillStyle = '#ffffffd9';

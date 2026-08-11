@@ -1,52 +1,48 @@
-# QA 报告：六关扩展版最终调整
+# QA 报告：六关最终版本
 
 ## 范围与方法
 
 - 依据：`GAME_SPEC.md`。
 - 日期：2026-08-12。
 - 对象：`index.html`、`style.css`、`game.js`、`assets/`。
-- 方法：`node --check game.js`、`git diff --check`、最小 DOM/Canvas VM 烟测、Edge headless 截图和素材目视检查。
-- 本轮覆盖 `game.js` 的砖阵几何、球体绘制与选关卡片文案，并复核第 3 至第 6 关素材裁切结果。
+- 方法：`node --check game.js`、`git diff --check`、最小 DOM/Canvas VM 烟测、Edge headless 截图目视检查及素材目视检查。
+- 本轮覆盖 `game.js` 的关卡背景映射、后段砖量、球体绘制与砖块边框，并复核 `GAME_SPEC.md`、素材和 Edge 截图。
 
-## 最终调整验证
+## 最终验证
 
-| 项目 | 复现步骤 | 预期 | 实际 | 结果 |
+| 用例 | 复现步骤 | 预期 | 实际 | 结果 |
 |---|---|---|---|---|
-| 砖阵水平居中 | 启动第 1 关，检查砖阵左右边距 | 砖阵在 960 宽逻辑画布中居中 | `totalWidth=760`，`left=(960-760)/2=100`，左右各余 100；`adjusted-level1.png` 目视确认 | 通过 |
-| 球高光与拖尾 | 启动第 1 关并观察运动球；激活 MULTI_BALL 后绘制两球 | 高光和拖尾提升辨识度，不能改变碰撞或双球数量 | `drawBall()` 只读取球位置/速度并调用 Canvas 绘制；VM 激活后为 2 球，调用 `draw()` 后球对象不变；单球落底后仍留 1 球、生命维持 3 | 通过 |
-| 选关卡片信息 | 进入选关，检查卡片副标题 | 卡片保留关名、难度、锁定状态和缩略图，不显示布局名称/“布局”文字 | `buildLevelCards()` 仅写入关名、难度与锁定状态；`adjusted-select.png` 未见布局名称或“布局”文字 | 通过 |
-| level-03 至 level-06 素材 | 查看 4 张 `assets/level-0[3-6].jpg` 的四角与边缘 | 无角落 Logo、版权条或截图界面元素 | 已逐张目视检查，未见角落 Logo、版权条或截图 UI；页面使用这些本地 JPEG | 通过 |
-
-## 核心扩展回归
-
-- 六关选关：`expansion-level-select-thumbs.png` 显示 6 张卡片，首关可选、其余锁定；`localStorage` 路径在通关时解锁下一关。
-- 六套布局：VM 砖块数依次为 48、46、44、24、28、26，对应基础矩形、左右对称、中心空洞、阶梯回廊、环形双层和混合多区。
-- 特殊砖：每关均为 3 枚彩虹砖与 1-2 枚火力砖，且使用闪光/闪电符号；游戏源码中未发现“目标”文字。
-- 四阶段马赛克：三枚彩虹砖推进 stage1-3；所有砖块清空时设置 stage4 并结算胜利。`expansion-level1-stage0.png` 与 `expansion-level1-stage4.png` 提供调试预览证据。
-- MULTI_BALL：火力增益激活后复制为 2 球；任一球落底只移除该球；全部落底才扣 1 条生命并复位单球。VM 已复核该路径。
-- 移动端：`expansion-mobile-final.png` 显示 2 列选关布局；CSS 在极窄屏切为单列，交互按钮最小 44px，Canvas 使用 `touch-action:none` 与 pointer capture。
+| 背景顺序 | 进入选关并查看第 1-6 关卡片/启动各关 | 前两关依次使用 `level-03.jpg`、`level-05.jpg`；明显复杂遮挡背景在后段 | `LEVELS` 顺序为 level-03、level-05、level-04、scene-moonlit、scene-gala、level-06；`reorder-level1.png`/`reorder-level2.png` 显示前两关对应背景，后段使用更复杂场景 | 通过 |
+| 关卡砖块数 | 启动 `?level=1..6&autoplay`，统计 `state.bricks.length` | 所有布局坐标有效；后 3 关相较上一版本有所增加 | 当前为 48、46、44、28、32、30；上一轮后 3 关为 24、28、26，当前每关增加 4 块；特殊砖坐标均命中实际砖格 | 通过（相对上一版） |
+| 特殊砖坐标 | 各关检查 `rainbowBricks`/`powerupBricks` 与生成砖格 | 每关 3 彩虹砖、1-2 火力砖，坐标有效 | VM 逐关验证：彩虹均 3；火力为 1、2、1、1、2、1，所有坐标都映射到 `state.bricks` | 通过 |
+| 球绘制与双球逻辑 | 启动后观察球；激活 MULTI_BALL 后调用绘制并令一球掉落 | 球有立体高光、暗部和拖尾；绘制不改变碰撞状态；单球掉落不扣生命 | `drawBall` 使用径向渐变、暗色外圈、三层拖尾和高光点；VM `draw()` 后 2 球状态不变，移除一球后仍有 1 球且生命不变 | 通过 |
+| 砖块绘制层次 | 启动第 1 关观察普通/特殊砖 | 顶部亮边、底部暗边，特殊砖仍可由符号识别 | `drawBrick` 使用纵向 sheen（顶部亮、底部暗）、阴影和上下描边；`reorder-level1.png` 可见立体边缘与彩虹/闪电符号 | 通过 |
+| 选关文字 | 进入选关查看 6 张卡片 | 不显示 layoutName/“布局”文字 | `card.innerHTML` 仅关名、难度和锁定状态；`reorder-select.png` 未见布局文字 | 通过 |
+| 素材角落 | 查看 `assets/level-03.jpg` 至 `level-06.jpg` 四角及边缘 | 无角落 Logo、版权条或截图 UI | 四张 JPEG 目视未见角落 Logo、版权条或截图界面元素 | 通过 |
+| 核心回归 | 开始、计分、失球、胜负、暂停、重开 | 既有核心循环不回归 | `node --check`、VM 状态路径及 Edge 截图均通过 | 通过 |
 
 ## 静态验证
 
 - `node --check game.js`：通过，退出码 0。
 - `git diff --check`：通过，退出码 0，仅有换行符转换提示。
-- VM：绘制后双球状态未被修改；单球掉落不扣生命，全部球掉落才扣生命。
+- VM：6 关布局数、特殊砖有效性、双球绘制纯度与单球掉落生命处理通过。
 
 ## 截图证据
 
-- [adjusted-level1.png](qa-artifacts/adjusted-level1.png)：居中的砖阵、球高光与拖尾、特殊砖和 4 块马赛克。
-- [adjusted-select.png](qa-artifacts/adjusted-select.png)：带背景缩略图的六关卡片，无布局文字。
-- [expansion-level-select-thumbs.png](qa-artifacts/expansion-level-select-thumbs.png)：桌面选关与锁定状态。
-- [expansion-mobile-final.png](qa-artifacts/expansion-mobile-final.png)：移动端选关布局。
-- [expansion-level3.png](qa-artifacts/expansion-level3.png)、[expansion-level6.png](qa-artifacts/expansion-level6.png)：第 3、6 关的布局与背景运行证据。
+- [reorder-select.png](qa-artifacts/reorder-select.png)：前两关顺序、关卡缩略图和锁定状态。
+- [reorder-level1.png](qa-artifacts/reorder-level1.png)：第 1 关 `level-03` 背景、居中砖阵、顶部/底部砖边缘和球高光拖尾。
+- [reorder-level2.png](qa-artifacts/reorder-level2.png)：第 2 关 `level-05` 背景与不同砖阵。
+- [reorder-level5.png](qa-artifacts/reorder-level5.png)：后段复杂场景、环形布局和特殊砖。
+- [reorder-level6.png](qa-artifacts/reorder-level6.png)：第 6 关混合多区布局与后段背景。
+- [adjusted-select.png](qa-artifacts/adjusted-select.png)：选关卡片无布局文字的补充证据。
 
 ## 问题与限制
 
 - P0：未发现。
 - P1：未发现已复现的功能阻塞。
-- P2：真实 iOS/Android 设备上的触控、长时间稳定性、音频策略和多 DPR 尚未验证。复现建议：在真实设备连续游玩并触发 MULTI_BALL，检查拖拽、双球、掉球和暂停。
-- P2：当前没有独立的 MULTI_BALL 双球视觉截图；其逻辑已由 VM 验证，建议发布前补拍实机画面。
+- P2：当前后 3 关砖块绝对数（28/32/30）仍低于前 3 关（48/46/44），但相较上一版各增加 4 块。若验收语义是“相较上一版增加”，已满足；若要求后 3 关绝对多于前 3 关，则需重新定义布局数量。
+- P2：真实 iOS/Android 触控、长时间稳定性、音频策略和多 DPR 尚未验证；Edge headless 截图不能完全替代实机试玩。
 
 ## 结论
 
-最终三项调整未引入已复现回归：砖阵居中，球的视觉效果不改变双球逻辑，选关卡片不再显示布局文字，level-03 至 level-06 素材无角落 Logo、版权条或截图 UI。当前无已复现 P0/P1，剩余为 P2 真实设备与视觉补证限制。
+最新版本已核实前两关背景顺序、后段复杂背景、六关砖阵及特殊砖坐标、球和砖块的立体绘制层次；无已复现 P0/P1。剩余为 P2 的关卡数量语义确认和真实设备验证限制。
