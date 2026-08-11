@@ -14,21 +14,26 @@
       <div class="hud-stats">
         <div class="stat"><span>分数</span><b id="score">0</b></div>
         <div class="stat"><span>生命</span><b id="lives">3</b></div>
-        <div class="stat stage-stat"><span>封印</span><b id="stageText">封印完整</b><div class="meter"><i id="stageMeter"></i></div></div>
+        <div class="stat"><span>球数</span><b id="ballCount">1</b></div>
+        <div class="stat stage-stat"><span>封印</span><b id="stageText">0/4</b><div class="meter"><i id="stageMeter"></i></div></div>
+        <div class="stat power-stat"><span>火力</span><b id="powerupStatus">标准</b></div>
       </div>
-      <div class="hud-actions"><button id="sceneBtn" class="icon-btn scene-btn" type="button" aria-label="切换背景：鎏金舞会">▣ 1/2</button><button id="pauseBtn" class="icon-btn" type="button" aria-label="暂停游戏">Ⅱ</button><button id="muteBtn" class="icon-btn" type="button" aria-label="开启静音">♫</button></div>
+      <div class="hud-actions"><button id="levelBtn" class="icon-btn level-btn" type="button" aria-label="返回关卡选择">关卡</button><button id="pauseBtn" class="icon-btn" type="button" aria-label="暂停游戏">Ⅱ</button><button id="muteBtn" class="icon-btn" type="button" aria-label="开启静音">♫</button></div>
     </header>
 
     <section class="arena-wrap" aria-label="游戏区域">
       <canvas id="gameCanvas" width="960" height="540" tabindex="0" aria-label="打砖块游戏画布"></canvas>
       <div class="overlay" id="startOverlay" role="dialog" aria-modal="true" aria-hidden="false" aria-labelledby="startTitle">
-        <div class="panel hero-panel"><p class="eyebrow">原创二次元打砖块</p><h1 id="startTitle">虹晶回响</h1><p class="lead">击破三枚虹彩砖，逐层解除画面封印。</p><div class="hero-spark" aria-hidden="true">◇　✦　◇</div><button id="startBtn" class="primary-btn" type="button">开始游戏 <span>Enter</span></button><p class="howto">← → / A D 移动　·　Space 暂停　·　B 换景　·　鼠标或触控拖动</p><label class="sound-check"><input id="startSound" type="checkbox" checked /> 开启音效</label></div>
+        <div class="panel hero-panel"><p class="eyebrow">原创二次元打砖块</p><h1 id="startTitle">虹晶回响</h1><p class="lead">击破虹彩砖，逐层解除画面封印。</p><div class="hero-spark" aria-hidden="true">◇　✦　◇</div><button id="startBtn" class="primary-btn" type="button">进入选关 <span>Enter</span></button><p class="howto">← → / A D 移动　·　Space 暂停　·　B 选关　·　鼠标或触控拖动</p><label class="sound-check"><input id="startSound" type="checkbox" checked /> 开启音效</label></div>
       </div>
-      <div class="overlay hidden" id="pauseOverlay" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="pauseTitle"><div class="panel"><p class="eyebrow">回响暂停</p><h2 id="pauseTitle">魔法凝滞中</h2><p>准备好后继续你的连击。</p><button id="resumeBtn" class="primary-btn" type="button">继续游戏</button><button id="restartPauseBtn" class="ghost-btn" type="button">重新开始</button></div></div>
-      <div class="overlay hidden" id="endOverlay" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="endTitle"><div class="panel"><p class="eyebrow" id="endEyebrow">挑战完成</p><h2 id="endTitle">清场成功</h2><p id="endMessage">全部砖块已清除。</p><div class="final-score">最终分数 <strong id="finalScore">0</strong></div><button id="restartBtn" class="primary-btn" type="button">再次挑战 <span>R</span></button></div></div>
+      <div class="overlay hidden" id="levelOverlay" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="levelTitle">
+        <div class="panel level-panel"><p class="eyebrow">选择挑战</p><h2 id="levelTitle">六重回响</h2><div class="level-grid" id="levelGrid"></div><button id="backToStartBtn" class="ghost-btn" type="button">返回标题</button></div>
+      </div>
+      <div class="overlay hidden" id="pauseOverlay" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="pauseTitle"><div class="panel"><p class="eyebrow">回响暂停</p><h2 id="pauseTitle">游戏暂停中</h2><p>准备好后继续挑战。</p><button id="resumeBtn" class="primary-btn" type="button">继续游戏</button><button id="restartPauseBtn" class="ghost-btn" type="button">重新开始</button></div></div>
+      <div class="overlay hidden" id="endOverlay" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="endTitle"><div class="panel"><p class="eyebrow" id="endEyebrow">挑战完成</p><h2 id="endTitle">清场成功</h2><p id="endMessage">全部砖块已清除。</p><div class="final-score">最终分数 <strong id="finalScore">0</strong></div><button id="nextLevelBtn" class="primary-btn hidden" type="button">下一关</button><button id="levelFromEndBtn" class="ghost-btn" type="button">选择关卡</button><button id="restartBtn" class="ghost-btn" type="button">重玩本关 <span>R</span></button></div></div>
       <div class="overlay hidden" id="lifeOverlay"><div class="panel mini-panel"><p class="eyebrow">能量回落</p><h2>挡板已重置</h2><p id="lifeMessage">还剩 2 点生命，继续保持。</p></div></div>
     </section>
-    <div class="status-row"><p id="status" role="status" aria-live="polite">点击“开始游戏”或按 Enter 开始。</p><p class="hint" id="desktopHint">Space/P：暂停　R：重开　B：换景</p></div>
+    <div class="status-row"><p id="status" role="status" aria-live="polite">点击“进入选关”或按 Enter 开始。</p><p class="hint" id="desktopHint">Space/P：暂停　R：重开　Esc：返回</p></div>
   </main>
   <script src="game.js"></script>
 </body>
